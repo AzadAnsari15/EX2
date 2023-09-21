@@ -84,7 +84,6 @@
           );
         }
       }
-
       class App {
         constructor() {
           this.canvas = document.getElementById("canvas");
@@ -102,6 +101,7 @@
           // Additional properties for multi-touch
           this.multiTouchStartDistance = null;
           this.multiTouchCurrentDistance = null;
+          this.canvas.touchEventCache = [];
 
           this.init();
         }
@@ -140,15 +140,19 @@
 
               if (e.pointerType === "touch") {
                 this.canvas.setPointerCapture(e.pointerId);
+                this.canvas.touchEventCache.push(e);
                 if (e.isPrimary) {
                   this.isMoving = true;
                 } else {
                   this.isResizing = true;
-                  this.multiTouchStartDistance = this.getDistanceFromCenter(
-                    rect,
-                    x,
-                    y
-                  );
+                  const touchPoints = this.getTouchPoints();
+                  if (touchPoints.length === 2) {
+                    this.multiTouchStartDistance =
+                      this.getDistanceBetweenPoints(
+                        touchPoints[0],
+                        touchPoints[1]
+                      );
+                  }
                 }
               } else {
                 this.isMoving = true;
@@ -182,21 +186,23 @@
             this.startPointerPosition = { x, y };
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
-          } else if (this.isResizing && !e.isPrimary) {
-            this.multiTouchCurrentDistance = this.getDistanceFromCenter(
-              this.selectedRectangle,
-              x,
-              y
-            );
-            const scale =
-              this.multiTouchCurrentDistance / this.multiTouchStartDistance;
+          } else if (this.isResizing) {
+            const touchPoints = this.getTouchPoints();
+            if (touchPoints.length === 2) {
+              this.multiTouchCurrentDistance = this.getDistanceBetweenPoints(
+                touchPoints[0],
+                touchPoints[1]
+              );
+              const scale =
+                this.multiTouchCurrentDistance / this.multiTouchStartDistance;
 
-            this.selectedRectangle.width *= scale;
-            this.selectedRectangle.height *= scale;
+              this.selectedRectangle.width *= scale;
+              this.selectedRectangle.height *= scale;
 
-            this.multiTouchStartDistance = this.multiTouchCurrentDistance;
-            this.showDeleteButton(this.selectedRectangle);
-            this.updateDottedRect(this.selectedRectangle);
+              this.multiTouchStartDistance = this.multiTouchCurrentDistance;
+              this.showDeleteButton(this.selectedRectangle);
+              this.updateDottedRect(this.selectedRectangle);
+            }
           }
 
           this.drawCanvas();
@@ -210,13 +216,25 @@
             this.isResizing = false;
           }
           this.multiTouchStartDistance = null;
+          this.canvas.touchEventCache = this.canvas.touchEventCache.filter(
+            (touch) => touch.pointerId !== e.pointerId
+          );
         }
 
-        getDistanceFromCenter(rect, x, y) {
-          const centerX = rect.x + rect.width / 2;
-          const centerY = rect.y + rect.height / 2;
-          const dx = x - centerX;
-          const dy = y - centerY;
+        getTouchPoints() {
+          const touchList = [];
+          for (let i = 0; i < this.canvas.touchEventCache.length; i++) {
+            touchList.push({
+              x: this.canvas.touchEventCache[i].clientX,
+              y: this.canvas.touchEventCache[i].clientY,
+            });
+          }
+          return touchList;
+        }
+
+        getDistanceBetweenPoints(point1, point2) {
+          const dx = point2.x - point1.x;
+          const dy = point2.y - point1.y;
           return Math.sqrt(dx * dx + dy * dy);
         }
 
