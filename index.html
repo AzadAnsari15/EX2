@@ -65,6 +65,26 @@
             10
           );
         }
+        closestEdge(x, y) {
+          const distances = {
+            left: Math.abs(x - this.x),
+            right: Math.abs(x - (this.x + this.width)),
+            top: Math.abs(y - this.y),
+            bottom: Math.abs(y - (this.y + this.height)),
+          };
+
+          let minEdge = "left";
+          let minValue = Infinity;
+
+          for (const edge in distances) {
+            if (distances[edge] < minValue) {
+              minEdge = edge;
+              minValue = distances[edge];
+            }
+          }
+
+          return minEdge;
+        }
 
         contains(x, y) {
           return (
