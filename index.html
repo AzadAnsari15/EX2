@@ -45,6 +45,13 @@
     </div>
 
     <script>
+      document.body.addEventListener(
+        "touchmove",
+        function (e) {
+          e.preventDefault();
+        },
+        { passive: false }
+      );
       class Rectangle {
         constructor(x, y, width = 0, height = 0) {
           this.x = x;
@@ -101,8 +108,9 @@
           this.isDrawing = false;
           this.isMoving = false;
           this.isResizing = false;
-          this.initialPinchDistance = null;
           this.isPinching = false;
+          this.initialPinchDistance = 0;
+
           this.init();
         }
 
@@ -123,26 +131,25 @@
             "click",
             this.deleteCurrentRect.bind(this)
           );
-
-          // Touch event listeners for pinch detection
-          this.canvas.addEventListener(
-            "touchstart",
-            this.onTouchStart.bind(this)
-          );
-          this.canvas.addEventListener(
-            "touchmove",
-            this.onTouchMove.bind(this)
-          );
-          this.canvas.addEventListener("touchend", this.onTouchEnd.bind(this));
-          this.canvas.addEventListener(
-            "touchcancel",
-            this.onTouchEnd.bind(this)
-          );
         }
 
         onPointerDown(e) {
-          const x = e.offsetX;
-          const y = e.offsetY;
+          e.preventDefault();
+
+          if (e.touches && e.touches.length === 2 && this.selectedRectangle) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+
+            const dx = touch1.pageX - touch2.pageX;
+            const dy = touch1.pageY - touch2.pageY;
+
+            this.initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+            this.isPinching = true;
+            return;
+          }
+
+          const x = e.offsetX || e.touches[0].pageX;
+          const y = e.offsetY || e.touches[0].pageY;
           this.startPointerPosition = { x, y };
 
           for (let rect of this.rectangles) {
@@ -167,8 +174,35 @@
         }
 
         onPointerMove(e) {
-          const x = e.offsetX;
-          const y = e.offsetY;
+          e.preventDefault();
+
+          if (
+            e.touches &&
+            e.touches.length === 2 &&
+            this.selectedRectangle &&
+            this.isPinching
+          ) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+
+            const dx = touch1.pageX - touch2.pageX;
+            const dy = touch1.pageY - touch2.pageY;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const scale = distance / this.initialPinchDistance;
+
+            this.selectedRectangle.width *= scale;
+            this.selectedRectangle.height *= scale;
+
+            this.initialPinchDistance = distance;
+
+            this.drawCanvas();
+            this.updateDottedRect(this.selectedRectangle);
+            return;
+          }
+
+          const x = e.offsetX || e.touches[0].pageX;
+          const y = e.offsetY || e.touches[0].pageY;
 
           if (this.isDrawing) {
             this.currentRectangle.width = x - this.currentRectangle.x;
@@ -193,6 +227,12 @@
         }
 
         onPointerUp(e) {
+          if (this.isPinching) {
+            this.isPinching = false;
+            this.initialPinchDistance = 0;
+            return;
+          }
+
           this.isDrawing = false;
           this.isMoving = false;
           this.isResizing = false;
@@ -235,43 +275,6 @@
 
         hideDeleteButton() {
           this.deleteButton.style.display = "none";
-        }
-        onTouchStart(e) {
-          e.preventDefault();
-
-          if (e.touches.length === 2) {
-            this.initialPinchDistance = this.getDistanceBetweenTouches(e);
-            this.isPinching = true;
-          }
-        }
-
-        onTouchMove(e) {
-          e.preventDefault();
-
-          if (this.isPinching && e.touches.length === 2) {
-            const currentDistance = this.getDistanceBetweenTouches(e);
-
-            if (currentDistance > this.initialPinchDistance) {
-              console.log("Pinch out detected");
-            } else {
-              console.log("Pinch in detected");
-            }
-
-            this.initialPinchDistance = currentDistance;
-          }
-        }
-
-        onTouchEnd(e) {
-          this.isPinching = false;
-          this.initialPinchDistance = null;
-        }
-
-        getDistanceBetweenTouches(e) {
-          const touch1 = e.touches[0];
-          const touch2 = e.touches[1];
-          const dx = touch2.pageX - touch1.pageX;
-          const dy = touch2.pageY - touch1.pageY;
-          return Math.sqrt(dx * dx + dy * dy);
         }
       }
 
