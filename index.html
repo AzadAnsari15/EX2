@@ -102,9 +102,6 @@
           this.isMoving = false;
           this.isResizing = false;
 
-          this.activePointers = {}; // Store active pointers
-          this.lastDistance = null;
-
           this.init();
         }
 
@@ -121,10 +118,6 @@
             "pointerup",
             this.onPointerUp.bind(this)
           );
-          this.canvas.addEventListener(
-            "pointercancel",
-            this.onPointerUp.bind(this)
-          );
           this.deleteButton.addEventListener(
             "click",
             this.deleteCurrentRect.bind(this)
@@ -132,72 +125,61 @@
         }
 
         onPointerDown(e) {
-          this.activePointers[e.pointerId] = { x: e.offsetX, y: e.offsetY };
+          const x = e.offsetX;
+          const y = e.offsetY;
+          this.startPointerPosition = { x, y };
 
-          if (Object.keys(this.activePointers).length == 1) {
-            const x = e.offsetX;
-            const y = e.offsetY;
-            this.startPointerPosition = { x, y };
-
-            for (let rect of this.rectangles) {
-              if (rect.insideResizeIndicator(x, y)) {
-                this.selectedRectangle = rect;
-                this.isResizing = true;
-                return;
-              } else if (rect.contains(x, y)) {
-                this.selectedRectangle = rect;
-                this.isMoving = true;
-                this.showDeleteButton(rect);
-                this.updateDottedRect(rect);
-                return;
-              }
+          for (let rect of this.rectangles) {
+            if (rect.insideResizeIndicator(x, y)) {
+              this.selectedRectangle = rect;
+              this.isResizing = true;
+              return;
+            } else if (rect.contains(x, y)) {
+              this.selectedRectangle = rect;
+              this.isMoving = true;
+              this.showDeleteButton(rect);
+              this.updateDottedRect(rect);
+              return;
             }
+          }
 
-            if (!this.isMoving && !this.isResizing) {
-              this.isDrawing = true;
-              this.currentRectangle = new Rectangle(x, y);
-              this.rectangles.push(this.currentRectangle);
-            }
+          if (!this.isMoving && !this.isResizing) {
+            this.isDrawing = true;
+            this.currentRectangle = new Rectangle(x, y);
+            this.rectangles.push(this.currentRectangle);
           }
         }
 
         onPointerMove(e) {
-          this.activePointers[e.pointerId] = { x: e.offsetX, y: e.offsetY };
+          const x = e.offsetX;
+          const y = e.offsetY;
 
-          const pointers = Object.keys(this.activePointers);
-          if (pointers.length === 2) {
-            const [p1, p2] = [
-              this.activePointers[pointers[0]],
-              this.activePointers[pointers[1]],
-            ];
-            const currentDistance = Math.sqrt(
-              Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
-            );
-
-            if (this.lastDistance && this.selectedRectangle) {
-              const scaleFactor = currentDistance / this.lastDistance;
-              this.selectedRectangle.width *= scaleFactor;
-              this.selectedRectangle.height *= scaleFactor;
-              this.updateDottedRect(this.selectedRectangle);
-              this.showDeleteButton(this.selectedRectangle);
-            }
-            this.lastDistance = currentDistance;
-          } else if (pointers.length === 1) {
-            // ... (Your existing single pointer move logic here, just like you provided initially) ...
+          if (this.isDrawing) {
+            this.currentRectangle.width = x - this.currentRectangle.x;
+            this.currentRectangle.height = y - this.currentRectangle.y;
+          } else if (this.isMoving && this.selectedRectangle) {
+            const dx = x - this.startPointerPosition.x;
+            const dy = y - this.startPointerPosition.y;
+            this.selectedRectangle.x += dx;
+            this.selectedRectangle.y += dy;
+            this.startPointerPosition = { x, y };
+            this.showDeleteButton(this.selectedRectangle);
+            this.updateDottedRect(this.selectedRectangle);
+          } else if (this.isResizing && this.selectedRectangle) {
+            this.selectedRectangle.width += x - this.startPointerPosition.x;
+            this.selectedRectangle.height += y - this.startPointerPosition.y;
+            this.startPointerPosition = { x, y };
+            this.showDeleteButton(this.selectedRectangle);
+            this.updateDottedRect(this.selectedRectangle);
           }
 
           this.drawCanvas();
         }
 
         onPointerUp(e) {
-          delete this.activePointers[e.pointerId];
-
-          if (Object.keys(this.activePointers).length === 0) {
-            this.lastDistance = null;
-            this.isDrawing = false;
-            this.isMoving = false;
-            this.isResizing = false;
-          }
+          this.isDrawing = false;
+          this.isMoving = false;
+          this.isResizing = false;
         }
 
         deleteCurrentRect() {
