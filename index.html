@@ -173,10 +173,44 @@
               pointersArray[1].x - pointersArray[0].x,
               pointersArray[1].y - pointersArray[0].y
             );
-            const scaleFactor = currentDistance / this.initialPinchDistance;
-            this.selectedRectangle.width *= scaleFactor;
-            this.selectedRectangle.height *= scaleFactor;
-            this.initialPinchDistance = currentDistance;
+
+            const edge1 = this.selectedRectangle.closestEdge(
+              pointersArray[0].x,
+              pointersArray[0].y
+            );
+            const edge2 = this.selectedRectangle.closestEdge(
+              pointersArray[1].x,
+              pointersArray[1].y
+            );
+
+            if (edge1 === "left" || edge2 === "left") {
+              const leftMost = Math.min(pointersArray[0].x, pointersArray[1].x);
+              this.selectedRectangle.width +=
+                this.selectedRectangle.x - leftMost;
+              this.selectedRectangle.x = leftMost;
+            }
+            if (edge1 === "right" || edge2 === "right") {
+              const rightMost = Math.max(
+                pointersArray[0].x,
+                pointersArray[1].x
+              );
+              this.selectedRectangle.width =
+                rightMost - this.selectedRectangle.x;
+            }
+            if (edge1 === "top" || edge2 === "top") {
+              const topMost = Math.min(pointersArray[0].y, pointersArray[1].y);
+              this.selectedRectangle.height +=
+                this.selectedRectangle.y - topMost;
+              this.selectedRectangle.y = topMost;
+            }
+            if (edge1 === "bottom" || edge2 === "bottom") {
+              const bottomMost = Math.max(
+                pointersArray[0].y,
+                pointersArray[1].y
+              );
+              this.selectedRectangle.height =
+                bottomMost - this.selectedRectangle.y;
+            }
 
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
