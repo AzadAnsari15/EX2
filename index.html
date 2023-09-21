@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Move, Resize</title>
+    <style>
+      #canvasWrapper {
+        position: relative;
+        width: 500px;
+        height: 500px;
+        border: 1px solid;
+      }
+
+      canvas {
+        cursor: pointer;
+      }
+
+      #dottedRect {
+        position: absolute;
+        border: 4px dashed black;
+        display: none;
+        pointer-events: none;
+      }
+
+      #deleteButton {
+        position: absolute;
+        display: none;
+        background-color: red;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      canvas {
+        touch-action: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="canvasWrapper">
+      <canvas id="canvas" width="500" height="500"></canvas>
+      <div id="dottedRect"></div>
+      <button id="deleteButton">Delete</button>
+    </div>
+
+    <script>
+      class Rectangle {
+        constructor(x, y, width = 0, height = 0) {
+          this.x = x;
+          this.y = y;
+          this.width = width;
+          this.height = height;
+        }
+
+        draw(ctx) {
+          ctx.fillStyle = "#FF5733";
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+
+          ctx.fillStyle = "blue";
+          ctx.fillRect(
+            this.x + this.width - 5,
+            this.y + this.height - 5,
+            10,
+            10
+          );
+        }
+
+        contains(x, y) {
+          return (
+            x > this.x &&
+            x < this.x + this.width &&
+            y > this.y &&
+            y < this.y + this.height
+          );
+        }
+
+        insideResizeIndicator(x, y) {
+          const size = 50;
+          return (
+            x > this.x + this.width &&
+            x < this.x + this.width + size &&
+            y > this.y + this.height &&
+            y < this.y + this.height + size
+          );
+        }
+      }
+
+      class App {
+        constructor() {
+          this.canvas = document.getElementById("canvas");
+          this.ctx = this.canvas.getContext("2d");
+
+          this.dottedRectDiv = document.getElementById("dottedRect");
+          this.deleteButton = document.getElementById("deleteButton");
+
+          this.rectangles = [];
+          this.selectedRectangle = null;
+          this.currentRectangle = null;
+          this.startPointerPosition = null;
+          this.isDrawing = false;
+          this.isMoving = false;
+          this.isResizing = false;
+
+          this.init();
+        }
+
+        init() {
+          this.canvas.addEventListener(
+            "pointerdown",
+            this.onPointerDown.bind(this)
+          );
+          this.canvas.addEventListener(
+            "pointermove",
+            this.onPointerMove.bind(this)
+          );
+          this.canvas.addEventListener(
+            "pointerup",
+            this.onPointerUp.bind(this)
+          );
+          this.deleteButton.addEventListener(
+            "click",
+            this.deleteCurrentRect.bind(this)
+          );
+        }
+
+        onPointerDown(e) {
+          const x = e.offsetX;
+          const y = e.offsetY;
+          this.startPointerPosition = { x, y };
+
+          for (let rect of this.rectangles) {
+            if (rect.insideResizeIndicator(x, y)) {
+              this.selectedRectangle = rect;
+              this.isResizing = true;
+              return;
+            } else if (rect.contains(x, y)) {
+              this.selectedRectangle = rect;
+              this.isMoving = true;
+              this.showDeleteButton(rect);
+              this.updateDottedRect(rect);
+              return;
+            }
+          }
+
+          if (!this.isMoving && !this.isResizing) {
+            this.isDrawing = true;
+            this.currentRectangle = new Rectangle(x, y);
+            this.rectangles.push(this.currentRectangle);
+          }
+        }
+
+        onPointerMove(e) {
+          const x = e.offsetX;
+          const y = e.offsetY;
+
+          if (this.isDrawing) {
+            this.currentRectangle.width = x - this.currentRectangle.x;
+            this.currentRectangle.height = y - this.currentRectangle.y;
+          } else if (this.isMoving && this.selectedRectangle) {
+            const dx = x - this.startPointerPosition.x;
+            const dy = y - this.startPointerPosition.y;
+            this.selectedRectangle.x += dx;
+            this.selectedRectangle.y += dy;
+            this.startPointerPosition = { x, y };
+            this.showDeleteButton(this.selectedRectangle);
+            this.updateDottedRect(this.selectedRectangle);
+          } else if (this.isResizing && this.selectedRectangle) {
+            this.selectedRectangle.width += x - this.startPointerPosition.x;
+            this.selectedRectangle.height += y - this.startPointerPosition.y;
+            this.startPointerPosition = { x, y };
+            this.showDeleteButton(this.selectedRectangle);
+            this.updateDottedRect(this.selectedRectangle);
+          }
+
+          this.drawCanvas();
+        }
+
+        onPointerUp(e) {
+          this.isDrawing = false;
+          this.isMoving = false;
+          this.isResizing = false;
+        }
+
+        deleteCurrentRect() {
+          const index = this.rectangles.indexOf(this.selectedRectangle);
+          if (index > -1) {
+            this.rectangles.splice(index, 1);
+            this.hideDeleteButton();
+            this.hideDottedRect();
+            this.drawCanvas();
+          }
+        }
+
+        drawCanvas() {
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          for (let rect of this.rectangles) {
+            rect.draw(this.ctx);
+          }
+        }
+
+        updateDottedRect(rect) {
+          this.dottedRectDiv.style.display = "block";
+          this.dottedRectDiv.style.left = rect.x - 5 + "px";
+          this.dottedRectDiv.style.top = rect.y - 5 + "px";
+          this.dottedRectDiv.style.width = rect.width + "px";
+          this.dottedRectDiv.style.height = rect.height + "px";
+        }
+
+        hideDottedRect() {
+          this.dottedRectDiv.style.display = "none";
+        }
+
+        showDeleteButton(rect) {
+          this.deleteButton.style.display = "block";
+          this.deleteButton.style.left = rect.x + rect.width + "px";
+          this.deleteButton.style.top = rect.y - 20 + "px";
+        }
+
+        hideDeleteButton() {
+          this.deleteButton.style.display = "none";
+        }
+      }
+
+      new App();
+    </script>
+  </body>
+</html>
