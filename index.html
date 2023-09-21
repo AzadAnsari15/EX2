@@ -56,6 +56,7 @@
         draw(ctx) {
           ctx.fillStyle = "#FF5733";
           ctx.fillRect(this.x, this.y, this.width, this.height);
+
           ctx.fillStyle = "blue";
           ctx.fillRect(
             this.x + this.width - 5,
@@ -84,12 +85,15 @@
           );
         }
       }
+
       class App {
         constructor() {
           this.canvas = document.getElementById("canvas");
           this.ctx = this.canvas.getContext("2d");
+
           this.dottedRectDiv = document.getElementById("dottedRect");
           this.deleteButton = document.getElementById("deleteButton");
+
           this.rectangles = [];
           this.selectedRectangle = null;
           this.currentRectangle = null;
@@ -98,10 +102,8 @@
           this.isMoving = false;
           this.isResizing = false;
 
-          // Additional properties for multi-touch
-          this.multiTouchStartDistance = null;
-          this.multiTouchCurrentDistance = null;
-          this.canvas.touchEventCache = [];
+          this.activePointers = {}; // Store active pointers
+          this.lastDistance = null;
 
           this.init();
         }
@@ -130,112 +132,72 @@
         }
 
         onPointerDown(e) {
-          const x = e.offsetX;
-          const y = e.offsetY;
-          this.startPointerPosition = { x, y };
+          this.activePointers[e.pointerId] = { x: e.offsetX, y: e.offsetY };
 
-          for (let rect of this.rectangles) {
-            if (rect.contains(x, y)) {
-              this.selectedRectangle = rect;
+          if (Object.keys(this.activePointers).length == 1) {
+            const x = e.offsetX;
+            const y = e.offsetY;
+            this.startPointerPosition = { x, y };
 
-              if (e.pointerType === "touch") {
-                this.canvas.setPointerCapture(e.pointerId);
-                this.canvas.touchEventCache.push(e);
-                if (e.isPrimary) {
-                  this.isMoving = true;
-                } else {
-                  this.isResizing = true;
-                  const touchPoints = this.getTouchPoints();
-                  if (touchPoints.length === 2) {
-                    this.multiTouchStartDistance =
-                      this.getDistanceBetweenPoints(
-                        touchPoints[0],
-                        touchPoints[1]
-                      );
-                  }
-                }
-              } else {
+            for (let rect of this.rectangles) {
+              if (rect.insideResizeIndicator(x, y)) {
+                this.selectedRectangle = rect;
+                this.isResizing = true;
+                return;
+              } else if (rect.contains(x, y)) {
+                this.selectedRectangle = rect;
                 this.isMoving = true;
+                this.showDeleteButton(rect);
+                this.updateDottedRect(rect);
+                return;
               }
-
-              this.showDeleteButton(rect);
-              this.updateDottedRect(rect);
-              return;
             }
-          }
 
-          if (!this.isMoving && !this.isResizing) {
-            this.isDrawing = true;
-            this.currentRectangle = new Rectangle(x, y);
-            this.rectangles.push(this.currentRectangle);
+            if (!this.isMoving && !this.isResizing) {
+              this.isDrawing = true;
+              this.currentRectangle = new Rectangle(x, y);
+              this.rectangles.push(this.currentRectangle);
+            }
           }
         }
 
         onPointerMove(e) {
-          const x = e.offsetX;
-          const y = e.offsetY;
+          this.activePointers[e.pointerId] = { x: e.offsetX, y: e.offsetY };
 
-          if (this.isDrawing && e.isPrimary) {
-            this.currentRectangle.width = x - this.currentRectangle.x;
-            this.currentRectangle.height = y - this.currentRectangle.y;
-          } else if (this.isMoving && e.isPrimary) {
-            const dx = x - this.startPointerPosition.x;
-            const dy = y - this.startPointerPosition.y;
-            this.selectedRectangle.x += dx;
-            this.selectedRectangle.y += dy;
-            this.startPointerPosition = { x, y };
-            this.showDeleteButton(this.selectedRectangle);
-            this.updateDottedRect(this.selectedRectangle);
-          } else if (this.isResizing) {
-            const touchPoints = this.getTouchPoints();
-            if (touchPoints.length === 2) {
-              this.multiTouchCurrentDistance = this.getDistanceBetweenPoints(
-                touchPoints[0],
-                touchPoints[1]
-              );
-              const scale =
-                this.multiTouchCurrentDistance / this.multiTouchStartDistance;
+          const pointers = Object.keys(this.activePointers);
+          if (pointers.length === 2) {
+            const [p1, p2] = [
+              this.activePointers[pointers[0]],
+              this.activePointers[pointers[1]],
+            ];
+            const currentDistance = Math.sqrt(
+              Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
+            );
 
-              this.selectedRectangle.width *= scale;
-              this.selectedRectangle.height *= scale;
-
-              this.multiTouchStartDistance = this.multiTouchCurrentDistance;
-              this.showDeleteButton(this.selectedRectangle);
+            if (this.lastDistance && this.selectedRectangle) {
+              const scaleFactor = currentDistance / this.lastDistance;
+              this.selectedRectangle.width *= scaleFactor;
+              this.selectedRectangle.height *= scaleFactor;
               this.updateDottedRect(this.selectedRectangle);
+              this.showDeleteButton(this.selectedRectangle);
             }
+            this.lastDistance = currentDistance;
+          } else if (pointers.length === 1) {
+            // ... (Your existing single pointer move logic here, just like you provided initially) ...
           }
 
           this.drawCanvas();
         }
 
         onPointerUp(e) {
-          if (e.isPrimary) {
+          delete this.activePointers[e.pointerId];
+
+          if (Object.keys(this.activePointers).length === 0) {
+            this.lastDistance = null;
             this.isDrawing = false;
             this.isMoving = false;
-          } else {
             this.isResizing = false;
           }
-          this.multiTouchStartDistance = null;
-          this.canvas.touchEventCache = this.canvas.touchEventCache.filter(
-            (touch) => touch.pointerId !== e.pointerId
-          );
-        }
-
-        getTouchPoints() {
-          const touchList = [];
-          for (let i = 0; i < this.canvas.touchEventCache.length; i++) {
-            touchList.push({
-              x: this.canvas.touchEventCache[i].clientX,
-              y: this.canvas.touchEventCache[i].clientY,
-            });
-          }
-          return touchList;
-        }
-
-        getDistanceBetweenPoints(point1, point2) {
-          const dx = point2.x - point1.x;
-          const dy = point2.y - point1.y;
-          return Math.sqrt(dx * dx + dy * dy);
         }
 
         deleteCurrentRect() {
