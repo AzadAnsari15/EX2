@@ -45,13 +45,6 @@
     </div>
 
     <script>
-      document.body.addEventListener(
-        "touchmove",
-        function (e) {
-          e.preventDefault();
-        },
-        { passive: false }
-      );
       class Rectangle {
         constructor(x, y, width = 0, height = 0) {
           this.x = x;
@@ -63,7 +56,6 @@
         draw(ctx) {
           ctx.fillStyle = "#FF5733";
           ctx.fillRect(this.x, this.y, this.width, this.height);
-
           ctx.fillStyle = "blue";
           ctx.fillRect(
             this.x + this.width - 5,
@@ -97,10 +89,8 @@
         constructor() {
           this.canvas = document.getElementById("canvas");
           this.ctx = this.canvas.getContext("2d");
-
           this.dottedRectDiv = document.getElementById("dottedRect");
           this.deleteButton = document.getElementById("deleteButton");
-
           this.rectangles = [];
           this.selectedRectangle = null;
           this.currentRectangle = null;
@@ -108,8 +98,10 @@
           this.isDrawing = false;
           this.isMoving = false;
           this.isResizing = false;
-          this.isPinching = false;
-          this.initialPinchDistance = 0;
+
+          // Additional properties for multi-touch
+          this.multiTouchStartDistance = null;
+          this.multiTouchCurrentDistance = null;
 
           this.init();
         }
@@ -127,6 +119,10 @@
             "pointerup",
             this.onPointerUp.bind(this)
           );
+          this.canvas.addEventListener(
+            "pointercancel",
+            this.onPointerUp.bind(this)
+          );
           this.deleteButton.addEventListener(
             "click",
             this.deleteCurrentRect.bind(this)
@@ -134,32 +130,30 @@
         }
 
         onPointerDown(e) {
-          e.preventDefault();
-
-          if (e.touches && e.touches.length === 2 && this.selectedRectangle) {
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-
-            const dx = touch1.pageX - touch2.pageX;
-            const dy = touch1.pageY - touch2.pageY;
-
-            this.initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
-            this.isPinching = true;
-            return;
-          }
-
-          const x = e.offsetX || e.touches[0].pageX;
-          const y = e.offsetY || e.touches[0].pageY;
+          const x = e.offsetX;
+          const y = e.offsetY;
           this.startPointerPosition = { x, y };
 
           for (let rect of this.rectangles) {
-            if (rect.insideResizeIndicator(x, y)) {
+            if (rect.contains(x, y)) {
               this.selectedRectangle = rect;
-              this.isResizing = true;
-              return;
-            } else if (rect.contains(x, y)) {
-              this.selectedRectangle = rect;
-              this.isMoving = true;
+
+              if (e.pointerType === "touch") {
+                this.canvas.setPointerCapture(e.pointerId);
+                if (e.isPrimary) {
+                  this.isMoving = true;
+                } else {
+                  this.isResizing = true;
+                  this.multiTouchStartDistance = this.getDistanceFromCenter(
+                    rect,
+                    x,
+                    y
+                  );
+                }
+              } else {
+                this.isMoving = true;
+              }
+
               this.showDeleteButton(rect);
               this.updateDottedRect(rect);
               return;
@@ -174,40 +168,13 @@
         }
 
         onPointerMove(e) {
-          e.preventDefault();
+          const x = e.offsetX;
+          const y = e.offsetY;
 
-          if (
-            e.touches &&
-            e.touches.length === 2 &&
-            this.selectedRectangle &&
-            this.isPinching
-          ) {
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-
-            const dx = touch1.pageX - touch2.pageX;
-            const dy = touch1.pageY - touch2.pageY;
-
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const scale = distance / this.initialPinchDistance;
-
-            this.selectedRectangle.width *= scale;
-            this.selectedRectangle.height *= scale;
-
-            this.initialPinchDistance = distance;
-
-            this.drawCanvas();
-            this.updateDottedRect(this.selectedRectangle);
-            return;
-          }
-
-          const x = e.offsetX || e.touches[0].pageX;
-          const y = e.offsetY || e.touches[0].pageY;
-
-          if (this.isDrawing) {
+          if (this.isDrawing && e.isPrimary) {
             this.currentRectangle.width = x - this.currentRectangle.x;
             this.currentRectangle.height = y - this.currentRectangle.y;
-          } else if (this.isMoving && this.selectedRectangle) {
+          } else if (this.isMoving && e.isPrimary) {
             const dx = x - this.startPointerPosition.x;
             const dy = y - this.startPointerPosition.y;
             this.selectedRectangle.x += dx;
@@ -215,10 +182,19 @@
             this.startPointerPosition = { x, y };
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
-          } else if (this.isResizing && this.selectedRectangle) {
-            this.selectedRectangle.width += x - this.startPointerPosition.x;
-            this.selectedRectangle.height += y - this.startPointerPosition.y;
-            this.startPointerPosition = { x, y };
+          } else if (this.isResizing && !e.isPrimary) {
+            this.multiTouchCurrentDistance = this.getDistanceFromCenter(
+              this.selectedRectangle,
+              x,
+              y
+            );
+            const scale =
+              this.multiTouchCurrentDistance / this.multiTouchStartDistance;
+
+            this.selectedRectangle.width *= scale;
+            this.selectedRectangle.height *= scale;
+
+            this.multiTouchStartDistance = this.multiTouchCurrentDistance;
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
           }
@@ -227,15 +203,21 @@
         }
 
         onPointerUp(e) {
-          if (this.isPinching) {
-            this.isPinching = false;
-            this.initialPinchDistance = 0;
-            return;
+          if (e.isPrimary) {
+            this.isDrawing = false;
+            this.isMoving = false;
+          } else {
+            this.isResizing = false;
           }
+          this.multiTouchStartDistance = null;
+        }
 
-          this.isDrawing = false;
-          this.isMoving = false;
-          this.isResizing = false;
+        getDistanceFromCenter(rect, x, y) {
+          const centerX = rect.x + rect.width / 2;
+          const centerY = rect.y + rect.height / 2;
+          const dx = x - centerX;
+          const dy = y - centerY;
+          return Math.sqrt(dx * dx + dy * dy);
         }
 
         deleteCurrentRect() {
