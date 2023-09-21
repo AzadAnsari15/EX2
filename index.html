@@ -193,44 +193,22 @@
               pointersArray[1].x - pointersArray[0].x,
               pointersArray[1].y - pointersArray[0].y
             );
+            const scaleFactor = currentDistance / this.initialPinchDistance;
 
-            const edge1 = this.selectedRectangle.closestEdge(
-              pointersArray[0].x,
-              pointersArray[0].y
-            );
-            const edge2 = this.selectedRectangle.closestEdge(
-              pointersArray[1].x,
-              pointersArray[1].y
-            );
+            // Calculate the change in width and height
+            const deltaWidth = this.selectedRectangle.width * (scaleFactor - 1);
+            const deltaHeight =
+              this.selectedRectangle.height * (scaleFactor - 1);
 
-            if (edge1 === "left" || edge2 === "left") {
-              const leftMost = Math.min(pointersArray[0].x, pointersArray[1].x);
-              this.selectedRectangle.width +=
-                this.selectedRectangle.x - leftMost;
-              this.selectedRectangle.x = leftMost;
-            }
-            if (edge1 === "right" || edge2 === "right") {
-              const rightMost = Math.max(
-                pointersArray[0].x,
-                pointersArray[1].x
-              );
-              this.selectedRectangle.width =
-                rightMost - this.selectedRectangle.x;
-            }
-            if (edge1 === "top" || edge2 === "top") {
-              const topMost = Math.min(pointersArray[0].y, pointersArray[1].y);
-              this.selectedRectangle.height +=
-                this.selectedRectangle.y - topMost;
-              this.selectedRectangle.y = topMost;
-            }
-            if (edge1 === "bottom" || edge2 === "bottom") {
-              const bottomMost = Math.max(
-                pointersArray[0].y,
-                pointersArray[1].y
-              );
-              this.selectedRectangle.height =
-                bottomMost - this.selectedRectangle.y;
-            }
+            // Adjust width and height
+            this.selectedRectangle.width *= scaleFactor;
+            this.selectedRectangle.height *= scaleFactor;
+
+            // Adjust x and y to keep the rectangle centered at its current center
+            this.selectedRectangle.x -= deltaWidth / 2;
+            this.selectedRectangle.y -= deltaHeight / 2;
+
+            this.initialPinchDistance = currentDistance;
 
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
