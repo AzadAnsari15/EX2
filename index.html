@@ -65,6 +65,8 @@
             10
           );
         }
+
+        // Check if a point (x, y) is inside the rectangle
         contains(x, y) {
           return (
             x > this.x &&
@@ -73,6 +75,8 @@
             y < this.y + this.height
           );
         }
+
+        // Check if a point (x, y) is inside the resize indicator of the rectangle(for desktop)
         insideResizeIndicator(x, y) {
           const size = 50;
           return (
@@ -82,13 +86,14 @@
             y < this.y + this.height + size
           );
         }
+        // Resize the rectangle by a given scale factor
         resize(scaleFactor) {
           const deltaWidth = this.width * (scaleFactor - 1);
           const deltaHeight = this.height * (scaleFactor - 1);
 
           this.width *= scaleFactor;
           this.height *= scaleFactor;
-
+          // Adjust the position to maintain the center of the rectangle
           this.x -= deltaWidth / 2;
           this.y -= deltaHeight / 2;
         }
