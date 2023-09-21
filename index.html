@@ -65,27 +65,6 @@
             10
           );
         }
-        closestEdge(x, y) {
-          const distances = {
-            left: Math.abs(x - this.x),
-            right: Math.abs(x - (this.x + this.width)),
-            top: Math.abs(y - this.y),
-            bottom: Math.abs(y - (this.y + this.height)),
-          };
-
-          let minEdge = "left";
-          let minValue = Infinity;
-
-          for (const edge in distances) {
-            if (distances[edge] < minValue) {
-              minEdge = edge;
-              minValue = distances[edge];
-            }
-          }
-
-          return minEdge;
-        }
-
         contains(x, y) {
           return (
             x > this.x &&
@@ -94,7 +73,6 @@
             y < this.y + this.height
           );
         }
-
         insideResizeIndicator(x, y) {
           const size = 50;
           return (
@@ -103,6 +81,20 @@
             y > this.y + this.height &&
             y < this.y + this.height + size
           );
+        }
+        resize(scaleFactor) {
+          const deltaWidth = this.width * (scaleFactor - 1);
+          const deltaHeight = this.height * (scaleFactor - 1);
+
+          this.width *= scaleFactor;
+          this.height *= scaleFactor;
+
+          this.x -= deltaWidth / 2;
+          this.y -= deltaHeight / 2;
+        }
+        move(dx, dy) {
+          this.x += dx;
+          this.y += dy;
         }
       }
 
@@ -155,7 +147,13 @@
 
           if (this.pointers.size === 1) {
             for (let rect of this.rectangles) {
-              if (rect.contains(x, y)) {
+              if (rect.insideResizeIndicator(x, y)) {
+                this.isResizing = true;
+                this.selectedRectangle = rect;
+                this.showDeleteButton(rect);
+                this.updateDottedRect(rect);
+                return;
+              } else if (rect.contains(x, y)) {
                 this.selectedRectangle = rect;
                 this.isMoving = true;
                 this.showDeleteButton(rect);
@@ -188,27 +186,23 @@
           this.pointers.set(e.pointerId, { x, y });
 
           if (this.isResizing && this.selectedRectangle) {
-            const pointersArray = [...this.pointers.values()];
-            const currentDistance = Math.hypot(
-              pointersArray[1].x - pointersArray[0].x,
-              pointersArray[1].y - pointersArray[0].y
-            );
-            const scaleFactor = currentDistance / this.initialPinchDistance;
+            if (this.pointers.size == 2) {
+              const pointersArray = [...this.pointers.values()];
+              const currentDistance = Math.hypot(
+                pointersArray[1].x - pointersArray[0].x,
+                pointersArray[1].y - pointersArray[0].y
+              );
+              const scaleFactor = currentDistance / this.initialPinchDistance;
 
-            // Calculate the change in width and height
-            const deltaWidth = this.selectedRectangle.width * (scaleFactor - 1);
-            const deltaHeight =
-              this.selectedRectangle.height * (scaleFactor - 1);
+              this.selectedRectangle.resize(scaleFactor);
+              this.initialPinchDistance = currentDistance;
+            } else {
+              const newWidth = x - this.selectedRectangle.x;
+              const newHeight = y - this.selectedRectangle.y;
 
-            // Adjust width and height
-            this.selectedRectangle.width *= scaleFactor;
-            this.selectedRectangle.height *= scaleFactor;
-
-            // Adjust x and y to keep the rectangle centered at its current center
-            this.selectedRectangle.x -= deltaWidth / 2;
-            this.selectedRectangle.y -= deltaHeight / 2;
-
-            this.initialPinchDistance = currentDistance;
+              this.selectedRectangle.width = newWidth;
+              this.selectedRectangle.height = newHeight;
+            }
 
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
@@ -216,14 +210,15 @@
 
             return;
           } else if (this.isDrawing) {
-            this.currentRectangle.width = x - this.currentRectangle.x;
-            this.currentRectangle.height = y - this.currentRectangle.y;
+            this.currentRectangle.width = e.offsetX - this.currentRectangle.x;
+            this.currentRectangle.height = e.offsetY - this.currentRectangle.y;
           } else if (this.isMoving && this.selectedRectangle) {
-            const dx = x - this.startPointerPosition.x;
-            const dy = y - this.startPointerPosition.y;
-            this.selectedRectangle.x += dx;
-            this.selectedRectangle.y += dy;
-            this.startPointerPosition = { x, y };
+            const dx = e.offsetX - this.startPointerPosition.x;
+            const dy = e.offsetY - this.startPointerPosition.y;
+
+            this.selectedRectangle.move(dx, dy);
+
+            this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
             this.showDeleteButton(this.selectedRectangle);
             this.updateDottedRect(this.selectedRectangle);
           }
