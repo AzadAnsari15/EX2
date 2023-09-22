@@ -1,0 +1,29 @@
+#canvasWrapper {
+  position: relative;
+  width: 500px;
+  height: 500px;
+  border: 1px solid;
+}
+
+canvas {
+  cursor: pointer;
+}
+
+#dottedRect {
+  position: absolute;
+  border: 4px dashed black;
+  display: none;
+  pointer-events: none;
+}
+
+#deleteButton {
+  position: absolute;
+  display: none;
+  background-color: red;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+canvas {
+  touch-action: none;
+}
