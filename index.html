@@ -3,70 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Drag and Drop Task List</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        display: flex;
-        justify-content: space-between;
-        padding: 20px;
-      }
-
-      .column {
-        border: 1px solid black;
-        padding: 10px;
-        width: 45%;
-      }
-
-      .task {
-        margin: 10px 0;
-        padding: 5px 10px;
-        border: 1px solid grey;
-        background-color: #f7f7f7;
-        cursor: move;
-      }
-    </style>
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div class="column" id="todo">
-      <h2>To-Do</h2>
-      <div class="task" draggable="true" id="task1">Clean the house</div>
-      <div class="task" draggable="true" id="task2">Finish the report</div>
+    <div id="canvasWrapper">
+      <canvas id="canvas" width="500" height="500"></canvas>
+      <div id="dottedRect"></div>
+      <button id="deleteButton">Delete</button>
     </div>
 
-    <div class="column" id="completed">
-      <h2>Completed</h2>
-    </div>
-
-    <script>
-      let draggedTask = null;
-
-      document.addEventListener("dragstart", (e) => {
-        draggedTask = e.target;
-        e.target.style.opacity = 0.5;
-      });
-
-      document.addEventListener("dragend", (e) => {
-        e.target.style.opacity = "";
-      });
-
-      document.getElementById("todo").addEventListener("dragover", (e) => {
-        e.preventDefault();
-      });
-
-      document.getElementById("completed").addEventListener("dragover", (e) => {
-        e.preventDefault();
-      });
-
-      document.getElementById("todo").addEventListener("drop", (e) => {
-        e.preventDefault();
-        e.target.appendChild(draggedTask);
-      });
-
-      document.getElementById("completed").addEventListener("drop", (e) => {
-        e.preventDefault();
-        e.target.appendChild(draggedTask);
-      });
-    </script>
+    <script src="./index.js"></script>
   </body>
 </html>
