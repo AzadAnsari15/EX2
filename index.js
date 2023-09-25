@@ -45,6 +45,10 @@ class Rectangle {
     this.x -= deltaWidth / 2;
     this.y -= deltaHeight / 2;
   }
+
+  /**
+   * This method ensure that rectangle stay within canvas boundaries
+   */
   move(dx, dy, maxWidth, maxHeight) {
     this.x = Math.min(Math.max(0, this.x + dx), maxWidth - this.width);
     this.y = Math.min(Math.max(0, this.y + dy), maxHeight - this.height);
@@ -124,6 +128,11 @@ class App {
           pointersArray[1].y - pointersArray[0].y
         );
       }
+    } else if (this.pointers.size === 3) {
+      this.isDrawing = false;
+      this.isMoving = false;
+      this.isResizing = false;
+      return;
     }
   }
 
@@ -173,7 +182,7 @@ class App {
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    }
+    } else if (this.pointers.size === 3) return;
 
     this.drawCanvas();
   }
