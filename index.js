@@ -54,39 +54,68 @@ class Rectangle {
     this.y = Math.min(Math.max(0, this.y + dy), maxHeight - this.height);
   }
 }
-
+/**
+ * Class representing the main application for drawing and manipulating rectangles on a canvas.
+ */
 class App {
+  /**
+   * Initializes a new App instance.
+   */
   constructor() {
+    /** @type {HTMLCanvasElement} */
     this.canvas = document.getElementById("canvas");
+    /** @type {CanvasRenderingContext2D} */
     this.ctx = this.canvas.getContext("2d");
 
+    /** @type {HTMLElement} - Div element representing a dotted rectangle. */
     this.dottedRectDiv = document.getElementById("dottedRect");
+    /** @type {HTMLElement} - Button to delete a rectangle. */
     this.deleteButton = document.getElementById("deleteButton");
 
+    /** @type {Array} - List of drawn rectangles. */
     this.rectangles = [];
+    /** @type {?Rectangle} - Currently selected rectangle. */
     this.selectedRectangle = null;
+    /** @type {?Rectangle} - Rectangle that's currently being drawn. */
     this.currentRectangle = null;
+    /** @type {?Object} - Starting position of the pointer. */
     this.startPointerPosition = null;
+    /** @type {boolean} - Flag indicating if a rectangle is being drawn. */
     this.isDrawing = false;
+    /** @type {boolean} - Flag indicating if a rectangle is being moved. */
     this.isMoving = false;
+    /** @type {boolean} - Flag indicating if a rectangle is being resized. */
     this.isResizing = false;
 
+    /** @type {Map} - Map of active pointers. */
     this.pointers = new Map();
+    /** @type {?number} - Initial distance between two pointers during a pinch gesture. */
     this.initialPinchDistance = null;
 
     this.init();
   }
 
+  /**
+   * Setup initial event listeners and configurations.
+   */
   init() {
     this.canvas.addEventListener("pointerdown", this.onPointerDown.bind(this));
     this.canvas.addEventListener("pointermove", this.onPointerMove.bind(this));
     this.canvas.addEventListener("pointerup", this.onPointerUp.bind(this));
+    this.canvas.addEventListener(
+      "pointercancel",
+      this.onPointerCancel.bind(this)
+    );
+
     this.deleteButton.addEventListener(
       "click",
       this.deleteCurrentRect.bind(this)
     );
   }
-
+  /**
+   * Handles the pointer down event.
+   * @param {PointerEvent} e - The pointer event.
+   */
   onPointerDown(e) {
     const x = e.offsetX;
     const y = e.offsetY;
@@ -135,7 +164,10 @@ class App {
       return;
     }
   }
-
+  /**
+   * Handles the pointer move event.
+   * @param {PointerEvent} e - The pointer event.
+   */
   onPointerMove(e) {
     const x = e.offsetX;
     const y = e.offsetY;
@@ -198,7 +230,19 @@ class App {
       this.isResizing = false;
     }
   }
+  onPointerCancel(e) {
+    this.pointers.delete(e.pointerId);
+    if (this.pointers.size < 2) {
+      this.initialPinchDistance = null;
+    }
 
+    if (this.pointers.size === 0) {
+      this.isDrawing = false;
+      this.isMoving = false;
+      this.isResizing = false;
+    }
+  }
+  /** Deletes the currently selected rectangle. */
   deleteCurrentRect() {
     const index = this.rectangles.indexOf(this.selectedRectangle);
     if (index > -1) {
@@ -208,14 +252,17 @@ class App {
       this.drawCanvas();
     }
   }
-
+  /** Redraws all rectangles on the canvas. */
   drawCanvas() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (let rect of this.rectangles) {
       rect.draw(this.ctx);
     }
   }
-
+  /**
+   * Updates the visual dotted rectangle to match the current rectangle's position and size.
+   * @param {Rectangle} rect - The rectangle object to match.
+   */
   updateDottedRect(rect) {
     this.dottedRectDiv.style.display = "block";
     this.dottedRectDiv.style.left = rect.x - 5 + "px";
@@ -223,11 +270,14 @@ class App {
     this.dottedRectDiv.style.width = rect.width + "px";
     this.dottedRectDiv.style.height = rect.height + "px";
   }
-
+  /** Hides the visual dotted rectangle. */
   hideDottedRect() {
     this.dottedRectDiv.style.display = "none";
   }
-
+  /**
+   * Displays the delete button near the currently selected rectangle.
+   * @param {Rectangle} rect - The rectangle object to display the delete button near.
+   */
   showDeleteButton(rect) {
     this.deleteButton.style.display = "block";
     this.deleteButton.style.left = rect.x + rect.width + "px";
