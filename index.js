@@ -45,17 +45,14 @@ class Rectangle {
     this.x -= deltaWidth / 2;
     this.y -= deltaHeight / 2;
   }
-  move(dx, dy) {
-    this.x += dx;
-    this.y += dy;
+  move(dx, dy, maxWidth, maxHeight) {
+    this.x = Math.min(Math.max(0, this.x + dx), maxWidth - this.width);
+    this.y = Math.min(Math.max(0, this.y + dy), maxHeight - this.height);
   }
 }
 
 class App {
   constructor() {
-    /*
-          
-           */
     this.canvas = document.getElementById("canvas");
     this.ctx = this.canvas.getContext("2d");
 
@@ -166,7 +163,12 @@ class App {
       const dx = e.offsetX - this.startPointerPosition.x;
       const dy = e.offsetY - this.startPointerPosition.y;
 
-      this.selectedRectangle.move(dx, dy);
+      this.selectedRectangle.move(
+        dx,
+        dy,
+        this.canvas.width,
+        this.canvas.height
+      );
 
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
