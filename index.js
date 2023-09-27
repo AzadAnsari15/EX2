@@ -117,17 +117,15 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
-    if (this.pointers.size >= 3) {
-      return; // Ignore more than 2 fingers
+    // If two fingers are already active, don't consider additional fingers.
+    if (this.pointers.size >= 2) {
+      return;
     }
+
     const x = e.offsetX;
     const y = e.offsetY;
-    this.startPointerPosition = { x, y };
     this.pointers.set(e.pointerId, { x, y });
-    //eg for two fingure  {
-    //   1: { x: 100, y: 150 },
-    //   2: { x: 200, y: 250 }
-    // }
+
     if (this.pointers.size === 1) {
       for (let rect of this.rectangles) {
         if (rect.insideResizeIndicator(x, y)) {
@@ -137,23 +135,21 @@ class App {
           this.updateDottedRect(rect);
           return;
         } else if (rect.contains(x, y)) {
-          this.selectedRectangle = rect;
           this.isMoving = true;
+          this.selectedRectangle = rect;
           this.showDeleteButton(rect);
           this.updateDottedRect(rect);
           return;
         }
       }
 
-      if (!this.isMoving) {
+      if (!this.isMoving && !this.isResizing) {
         this.isDrawing = true;
         this.currentRectangle = new Rectangle(x, y);
         this.rectangles.push(this.currentRectangle);
       }
-    } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      if (this.selectedRectangle.contains(x, y)) {
-        this.isResizing = true;
-        this.isMoving = false;
+    } else if (this.pointers.size === 2) {
+      if (this.selectedRectangle && this.selectedRectangle.contains(x, y)) {
         const pointersArray = [...this.pointers.values()];
         this.initialPinchDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
@@ -162,6 +158,7 @@ class App {
       }
     }
   }
+
   /**
    * Handles the pointer move event.
    * @param {PointerEvent} e - The pointer event.
