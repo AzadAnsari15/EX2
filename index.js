@@ -148,20 +148,23 @@ class App {
         this.rectangles.push(this.currentRectangle);
       }
     } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      if (this.selectedRectangle.contains(x, y)) {
+      const pointersArray = [...this.pointers.values()];
+      if (
+        this.selectedRectangle.contains(
+          pointersArray[0].x,
+          pointersArray[0].y
+        ) &&
+        this.selectedRectangle.contains(pointersArray[1].x, pointersArray[1].y)
+      ) {
         this.isResizing = true;
         this.isMoving = false;
-        const pointersArray = [...this.pointers.values()];
         this.initialPinchDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
           pointersArray[1].y - pointersArray[0].y
         );
       }
-    } else if (this.pointers.size === 3) {
-      this.isDrawing = false;
-      this.isMoving = false;
-      this.isResizing = false;
-      return;
+    } else if (this.pointers.size > 2) {
+      return; // Ignore the third pointer
     }
   }
   /**
@@ -173,7 +176,7 @@ class App {
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
     console.log(this.pointers);
-    if (this.isResizing && this.selectedRectangle) {
+    if (this.isResizing && this.selectedRectangle && this.pointers.size == 2) {
       if (this.pointers.size == 2) {
         const pointersArray = [...this.pointers.values()];
         const currentDistance = Math.hypot(
@@ -197,7 +200,7 @@ class App {
       this.drawCanvas();
 
       return;
-    } else if (this.isDrawing) {
+    } else if (this.pointers.size > 2 && this.isDrawing) {
       this.currentRectangle.width = e.offsetX - this.currentRectangle.x;
       this.currentRectangle.height = e.offsetY - this.currentRectangle.y;
     } else if (this.isMoving && this.selectedRectangle) {
@@ -214,7 +217,7 @@ class App {
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    } else if (this.pointers.size === 3) return;
+    }
 
     this.drawCanvas();
   }
