@@ -117,6 +117,9 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
+    if (this.pointers.size >= 3) {
+      return; // Ignore more than 2 fingers
+    }
     const x = e.offsetX;
     const y = e.offsetY;
     this.startPointerPosition = { x, y };
@@ -157,8 +160,6 @@ class App {
           pointersArray[1].y - pointersArray[0].y
         );
       }
-    } else if (this.pointers.size > 2) {
-      return;
     }
   }
   /**
@@ -166,6 +167,9 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerMove(e) {
+    if (this.pointers.size >= 3) {
+      return; // Ignore more than 2 fingers
+    }
     const x = e.offsetX;
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
@@ -211,12 +215,17 @@ class App {
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    } else if (this.pointers.size > 2) return;
+    }
 
     this.drawCanvas();
   }
 
   onPointerUp(e) {
+    if (this.pointers.size >= 3) {
+      this.pointers.delete(e.pointerId); // Cleanup pointer data
+      return; // Ignore more than 2 fingers
+    }
+
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
       this.initialPinchDistance = null;
@@ -228,6 +237,11 @@ class App {
     }
   }
   onPointerCancel(e) {
+    if (this.pointers.size >= 3) {
+      this.pointers.delete(e.pointerId); // Cleanup pointer data
+      return; // Ignore more than 2 fingers
+    }
+
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
       this.initialPinchDistance = null;
