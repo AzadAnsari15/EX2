@@ -148,22 +148,16 @@ class App {
         this.rectangles.push(this.currentRectangle);
       }
     } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      const pointersArray = [...this.pointers.values()];
-      if (
-        this.selectedRectangle.contains(
-          pointersArray[0].x,
-          pointersArray[0].y
-        ) &&
-        this.selectedRectangle.contains(pointersArray[1].x, pointersArray[1].y)
-      ) {
+      if (this.selectedRectangle.contains(x, y)) {
         this.isResizing = true;
         this.isMoving = false;
+        const pointersArray = [...this.pointers.values()];
         this.initialPinchDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
           pointersArray[1].y - pointersArray[0].y
         );
       }
-    } else if (this.pointers.size > 2) {
+    } else if (this.pointers.size === 3) {
       this.isDrawing = false;
       this.isMoving = false;
       this.isResizing = false;
