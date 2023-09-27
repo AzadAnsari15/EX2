@@ -167,8 +167,8 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerMove(e) {
-    if (this.pointers.size >= 3) {
-      return; // Ignore more than 2 fingers
+    if (this.pointers.size > 2 && !this.pointers.has(e.pointerId)) {
+      return; // Ignore the movement of the 3rd finger and any additional ones
     }
     const x = e.offsetX;
     const y = e.offsetY;
@@ -221,11 +221,10 @@ class App {
   }
 
   onPointerUp(e) {
-    if (this.pointers.size >= 3) {
-      this.pointers.delete(e.pointerId); // Cleanup pointer data
-      return; // Ignore more than 2 fingers
+    this.pointers.delete(e.pointerId);
+    if (this.pointers.size >= 2) {
+      return; // If there's a 3rd finger, just clean up its data and ignore
     }
-
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
       this.initialPinchDistance = null;
@@ -237,9 +236,9 @@ class App {
     }
   }
   onPointerCancel(e) {
-    if (this.pointers.size >= 3) {
-      this.pointers.delete(e.pointerId); // Cleanup pointer data
-      return; // Ignore more than 2 fingers
+    this.pointers.delete(e.pointerId);
+    if (this.pointers.size >= 2) {
+      return; // If there's a 3rd finger, just clean up its data and ignore
     }
 
     this.pointers.delete(e.pointerId);
