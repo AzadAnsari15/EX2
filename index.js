@@ -174,7 +174,7 @@ class App {
     this.pointers.set(e.pointerId, { x, y });
     console.log(this.pointers);
     if (this.isResizing && this.selectedRectangle) {
-      if (this.pointers.size == 2) {
+      if (this.pointers.size === 2) {
         const pointersArray = [...this.pointers.values()];
         const currentDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
