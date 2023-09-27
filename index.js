@@ -157,10 +157,7 @@ class App {
           pointersArray[1].y - pointersArray[0].y
         );
       }
-    } else if (this.pointers.size === 3) {
-      this.isDrawing = false;
-      this.isMoving = false;
-      this.isResizing = false;
+    } else if (this.pointers.size > 2) {
       return;
     }
   }
@@ -172,7 +169,7 @@ class App {
     const x = e.offsetX;
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
-
+    console.log(this.pointers);
     if (this.isResizing && this.selectedRectangle) {
       if (this.pointers.size == 2) {
         const pointersArray = [...this.pointers.values()];
@@ -214,7 +211,7 @@ class App {
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    } else if (this.pointers.size === 3) return;
+    } else if (this.pointers.size > 2) return;
 
     this.drawCanvas();
   }
