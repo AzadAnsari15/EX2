@@ -160,7 +160,7 @@ class App {
     } else if (this.pointers.size === 3) {
       this.isDrawing = false;
       this.isMoving = false;
-      this.isResizing = false;
+      // this.isResizing = false;
       return;
     }
   }
