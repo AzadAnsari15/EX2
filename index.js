@@ -117,15 +117,14 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
-    // If two fingers are already active, don't consider additional fingers.
-    if (this.pointers.size >= 2) {
-      return;
-    }
-
     const x = e.offsetX;
     const y = e.offsetY;
+    this.startPointerPosition = { x, y };
     this.pointers.set(e.pointerId, { x, y });
-
+    //eg for two fingure  {
+    //   1: { x: 100, y: 150 },
+    //   2: { x: 200, y: 250 }
+    // }
     if (this.pointers.size === 1) {
       for (let rect of this.rectangles) {
         if (rect.insideResizeIndicator(x, y)) {
@@ -135,39 +134,41 @@ class App {
           this.updateDottedRect(rect);
           return;
         } else if (rect.contains(x, y)) {
-          this.isMoving = true;
           this.selectedRectangle = rect;
+          this.isMoving = true;
           this.showDeleteButton(rect);
           this.updateDottedRect(rect);
           return;
         }
       }
 
-      if (!this.isMoving && !this.isResizing) {
+      if (!this.isMoving) {
         this.isDrawing = true;
         this.currentRectangle = new Rectangle(x, y);
         this.rectangles.push(this.currentRectangle);
       }
-    } else if (this.pointers.size === 2) {
-      if (this.selectedRectangle && this.selectedRectangle.contains(x, y)) {
+    } else if (this.pointers.size === 2 && this.selectedRectangle) {
+      if (this.selectedRectangle.contains(x, y)) {
+        this.isResizing = true;
+        this.isMoving = false;
         const pointersArray = [...this.pointers.values()];
         this.initialPinchDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
           pointersArray[1].y - pointersArray[0].y
         );
       }
+    } else if (this.pointers.size === 3) {
+      this.isDrawing = false;
+      this.isMoving = false;
+      this.isResizing = false;
+      return;
     }
   }
-
   /**
    * Handles the pointer move event.
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerMove(e) {
-    if (!this.pointers.has(e.pointerId)) {
-      // If the moving pointer is not one of the first two, ignore it
-      return;
-    }
     const x = e.offsetX;
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
@@ -213,17 +214,12 @@ class App {
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    }
+    } else if (this.pointers.size === 3) return;
 
     this.drawCanvas();
   }
 
   onPointerUp(e) {
-    if (!this.pointers.has(e.pointerId)) {
-      // If the cancelled pointer is not one of the first two, ignore it
-      return;
-    }
-
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
       this.initialPinchDistance = null;
@@ -235,11 +231,6 @@ class App {
     }
   }
   onPointerCancel(e) {
-    if (!this.pointers.has(e.pointerId)) {
-      // If the cancelled pointer is not one of the first two, ignore it
-      return;
-    }
-
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
       this.initialPinchDistance = null;
