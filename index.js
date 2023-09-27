@@ -117,6 +117,9 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
+    if (this.pointers.size > 2) {
+      return; // Ignore the third pointer
+    }
     const x = e.offsetX;
     const y = e.offsetY;
     this.startPointerPosition = { x, y };
@@ -163,8 +166,6 @@ class App {
           pointersArray[1].y - pointersArray[0].y
         );
       }
-    } else if (this.pointers.size > 2) {
-      return; // Ignore the third pointer
     }
   }
   /**
@@ -176,7 +177,7 @@ class App {
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
     console.log(this.pointers);
-    if (this.isResizing && this.selectedRectangle && this.pointers.size == 2) {
+    if (this.isResizing && this.selectedRectangle && this.pointers.size === 2) {
       if (this.pointers.size == 2) {
         const pointersArray = [...this.pointers.values()];
         const currentDistance = Math.hypot(
@@ -224,7 +225,7 @@ class App {
 
   onPointerUp(e) {
     this.pointers.delete(e.pointerId);
-    if (this.pointers.size < 2) {
+    if (this.pointers.size !== 2) {
       this.initialPinchDistance = null;
     }
     if (this.pointers.size === 0) {
@@ -235,7 +236,7 @@ class App {
   }
   onPointerCancel(e) {
     this.pointers.delete(e.pointerId);
-    if (this.pointers.size < 2) {
+    if (this.pointers.size !== 2) {
       this.initialPinchDistance = null;
     }
 
