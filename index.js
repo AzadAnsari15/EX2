@@ -176,7 +176,14 @@ class App {
   onPointerMove(e) {
     const x = e.offsetX;
     const y = e.offsetY;
-
+    // If we're resizing, only update the pointers if it's one of the initial two.
+    if (
+      this.isResizing &&
+      this.selectedRectangle &&
+      !this.pointers.has(e.pointerId)
+    ) {
+      return; // Ignore this pointer move event if it's a third (or more) finger.
+    }
     this.pointers.set(e.pointerId, { x, y });
 
     if (this.isResizing && this.selectedRectangle) {
