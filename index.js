@@ -176,11 +176,13 @@ class App {
   onPointerMove(e) {
     const x = e.offsetX;
     const y = e.offsetY;
+
     this.pointers.set(e.pointerId, { x, y });
-    console.log(this.pointers);
+
     if (this.isResizing && this.selectedRectangle) {
-      if (this.pointers.size === 2 && this.selectedRectangle) {
+      if (this.pointers.size === 2) {
         const pointersArray = [...this.pointers.values()];
+
         const currentDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
           pointersArray[1].y - pointersArray[0].y
@@ -189,12 +191,13 @@ class App {
 
         this.selectedRectangle.resize(scaleFactor);
         this.initialPinchDistance = currentDistance;
-      } else {
+      } else if (this.pointers.size === 1) {
+        // Single-finger resize based on the indicator
         const newWidth = x - this.selectedRectangle.x;
         const newHeight = y - this.selectedRectangle.y;
 
-        this.selectedRectangle.width = newWidth;
-        this.selectedRectangle.height = newHeight;
+        this.selectedRectangle.width = Math.max(newWidth, 10); // setting a minimum width
+        this.selectedRectangle.height = Math.max(newHeight, 10); // setting a minimum height
       }
 
       this.showDeleteButton(this.selectedRectangle);
@@ -202,10 +205,14 @@ class App {
       this.drawCanvas();
 
       return;
-    } else if (this.isDrawing) {
+    } else if (this.isDrawing && this.pointers.size === 1) {
       this.currentRectangle.width = e.offsetX - this.currentRectangle.x;
       this.currentRectangle.height = e.offsetY - this.currentRectangle.y;
-    } else if (this.isMoving && this.selectedRectangle) {
+    } else if (
+      this.isMoving &&
+      this.selectedRectangle &&
+      this.pointers.size === 1
+    ) {
       const dx = e.offsetX - this.startPointerPosition.x;
       const dy = e.offsetY - this.startPointerPosition.y;
 
