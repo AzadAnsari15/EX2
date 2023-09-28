@@ -148,7 +148,11 @@ class App {
         this.rectangles.push(this.currentRectangle);
       }
     } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      if (this.selectedRectangle.contains(x, y)) {
+      if (
+        !this.isMoving &&
+        !this.isDrawing &&
+        this.selectedRectangle.contains(x, y)
+      ) {
         this.isResizing = true;
         this.isMoving = false;
         const pointersArray = [...this.pointers.values()];
@@ -157,11 +161,6 @@ class App {
           pointersArray[1].y - pointersArray[0].y
         );
       }
-    } else if (this.pointers.size === 3) {
-      this.isDrawing = false;
-      this.isMoving = false;
-      this.isResizing = false;
-      return;
     }
   }
   /**
@@ -172,9 +171,10 @@ class App {
     const x = e.offsetX;
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
-    console.log(this.pointers);
+
     if (this.isResizing && this.selectedRectangle) {
-      if (this.pointers.size == 2) {
+      if (this.pointers.size >= 2) {
+        // Allow resizing with 2 or more fingers
         const pointersArray = [...this.pointers.values()];
         const currentDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
@@ -184,19 +184,12 @@ class App {
 
         this.selectedRectangle.resize(scaleFactor);
         this.initialPinchDistance = currentDistance;
-      } else {
-        const newWidth = x - this.selectedRectangle.x;
-        const newHeight = y - this.selectedRectangle.y;
 
-        this.selectedRectangle.width = newWidth;
-        this.selectedRectangle.height = newHeight;
+        this.showDeleteButton(this.selectedRectangle);
+        this.updateDottedRect(this.selectedRectangle);
+        this.drawCanvas();
+        return;
       }
-
-      this.showDeleteButton(this.selectedRectangle);
-      this.updateDottedRect(this.selectedRectangle);
-      this.drawCanvas();
-
-      return;
     } else if (this.isDrawing) {
       this.currentRectangle.width = e.offsetX - this.currentRectangle.x;
       this.currentRectangle.height = e.offsetY - this.currentRectangle.y;
