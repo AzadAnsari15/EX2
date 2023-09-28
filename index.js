@@ -117,7 +117,8 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
-    if (this.pointers.size >= 2) {
+    // If two fingers are already detected and they're inside the rectangle, ignore other fingers.
+    if (this.pointers.size >= 2 && this.selectedRectangle && this.isResizing) {
       return;
     }
 
@@ -153,7 +154,11 @@ class App {
         this.rectangles.push(this.currentRectangle);
       }
     } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      if (this.selectedRectangle.contains(x, y)) {
+      const firstPoint = this.pointers.values().next().value;
+      if (
+        this.selectedRectangle.contains(firstPoint.x, firstPoint.y) &&
+        this.selectedRectangle.contains(x, y)
+      ) {
         this.isResizing = true;
         this.isMoving = false;
         const pointersArray = [...this.pointers.values()];
