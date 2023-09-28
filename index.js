@@ -121,10 +121,7 @@ class App {
     const y = e.offsetY;
     this.startPointerPosition = { x, y };
     this.pointers.set(e.pointerId, { x, y });
-    //eg for two fingure  {
-    //   1: { x: 100, y: 150 },
-    //   2: { x: 200, y: 250 }
-    // }
+
     if (this.pointers.size === 1) {
       for (let rect of this.rectangles) {
         if (rect.insideResizeIndicator(x, y)) {
@@ -147,74 +144,62 @@ class App {
         this.currentRectangle = new Rectangle(x, y);
         this.rectangles.push(this.currentRectangle);
       }
-    } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      if (this.selectedRectangle.contains(x, y)) {
-        this.isResizing = true;
-        this.isMoving = false;
-        const pointersArray = [...this.pointers.values()];
-        this.initialPinchDistance = Math.hypot(
-          pointersArray[1].x - pointersArray[0].x,
-          pointersArray[1].y - pointersArray[0].y
-        );
-      }
-    } else if (this.pointers.size === 3) {
-      this.isDrawing = false;
-      this.isMoving = false;
-      // this.isResizing = false;
-      return;
+    } else if (
+      this.pointers.size === 2 &&
+      this.selectedRectangle &&
+      this.selectedRectangle.contains(x, y)
+    ) {
+      const pointersArray = [...this.pointers.values()];
+      this.initialPinchDistance = Math.hypot(
+        pointersArray[1].x - pointersArray[0].x,
+        pointersArray[1].y - pointersArray[0].y
+      );
     }
   }
-  /**
-   * Handles the pointer move event.
-   * @param {PointerEvent} e - The pointer event.
-   */
+
   onPointerMove(e) {
     const x = e.offsetX;
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
-    console.log(this.pointers);
+
     if (this.isResizing && this.selectedRectangle) {
-      if (this.pointers.size === 2) {
+      if (this.pointers.size == 2) {
         const pointersArray = [...this.pointers.values()];
         const currentDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
           pointersArray[1].y - pointersArray[0].y
         );
         const scaleFactor = currentDistance / this.initialPinchDistance;
-
         this.selectedRectangle.resize(scaleFactor);
         this.initialPinchDistance = currentDistance;
       } else {
         const newWidth = x - this.selectedRectangle.x;
         const newHeight = y - this.selectedRectangle.y;
-
         this.selectedRectangle.width = newWidth;
         this.selectedRectangle.height = newHeight;
       }
-
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-      this.drawCanvas();
-
-      return;
-    } else if (this.isDrawing) {
+    } else if (this.isDrawing && this.pointers.size === 1) {
       this.currentRectangle.width = e.offsetX - this.currentRectangle.x;
       this.currentRectangle.height = e.offsetY - this.currentRectangle.y;
-    } else if (this.isMoving && this.selectedRectangle) {
+    } else if (
+      this.isMoving &&
+      this.selectedRectangle &&
+      this.pointers.size === 1
+    ) {
       const dx = e.offsetX - this.startPointerPosition.x;
       const dy = e.offsetY - this.startPointerPosition.y;
-
       this.selectedRectangle.move(
         dx,
         dy,
         this.canvas.width,
         this.canvas.height
       );
-
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    } else if (this.pointers.size === 3) return;
+    }
 
     this.drawCanvas();
   }
@@ -230,18 +215,19 @@ class App {
       this.isResizing = false;
     }
   }
+
   onPointerCancel(e) {
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
       this.initialPinchDistance = null;
     }
-
     if (this.pointers.size === 0) {
       this.isDrawing = false;
       this.isMoving = false;
       this.isResizing = false;
     }
   }
+
   /** Deletes the currently selected rectangle. */
   deleteCurrentRect() {
     const index = this.rectangles.indexOf(this.selectedRectangle);
