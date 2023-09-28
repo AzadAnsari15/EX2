@@ -117,9 +117,10 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
-    if (this.pointers.size === 3) {
+    if (this.pointers.size >= 2) {
       return;
     }
+
     const x = e.offsetX;
     const y = e.offsetY;
     this.startPointerPosition = { x, y };
