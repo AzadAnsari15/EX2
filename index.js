@@ -117,6 +117,9 @@ class App {
    * @param {PointerEvent} e - The pointer event.
    */
   onPointerDown(e) {
+    if (this.pointers.size === 3) {
+      return;
+    }
     const x = e.offsetX;
     const y = e.offsetY;
     this.startPointerPosition = { x, y };
@@ -125,6 +128,7 @@ class App {
     //   1: { x: 100, y: 150 },
     //   2: { x: 200, y: 250 }
     // }
+
     if (this.pointers.size === 1) {
       for (let rect of this.rectangles) {
         if (rect.insideResizeIndicator(x, y)) {
@@ -148,11 +152,7 @@ class App {
         this.rectangles.push(this.currentRectangle);
       }
     } else if (this.pointers.size === 2 && this.selectedRectangle) {
-      if (
-        !this.isMoving &&
-        !this.isDrawing &&
-        this.selectedRectangle.contains(x, y)
-      ) {
+      if (this.selectedRectangle.contains(x, y)) {
         this.isResizing = true;
         this.isMoving = false;
         const pointersArray = [...this.pointers.values()];
@@ -171,10 +171,9 @@ class App {
     const x = e.offsetX;
     const y = e.offsetY;
     this.pointers.set(e.pointerId, { x, y });
-
+    console.log(this.pointers);
     if (this.isResizing && this.selectedRectangle) {
-      if (this.pointers.size >= 2) {
-        // Allow resizing with 2 or more fingers
+      if (this.pointers.size === 2 && this.selectedRectangle) {
         const pointersArray = [...this.pointers.values()];
         const currentDistance = Math.hypot(
           pointersArray[1].x - pointersArray[0].x,
@@ -184,12 +183,19 @@ class App {
 
         this.selectedRectangle.resize(scaleFactor);
         this.initialPinchDistance = currentDistance;
+      } else {
+        const newWidth = x - this.selectedRectangle.x;
+        const newHeight = y - this.selectedRectangle.y;
 
-        this.showDeleteButton(this.selectedRectangle);
-        this.updateDottedRect(this.selectedRectangle);
-        this.drawCanvas();
-        return;
+        this.selectedRectangle.width = newWidth;
+        this.selectedRectangle.height = newHeight;
       }
+
+      this.showDeleteButton(this.selectedRectangle);
+      this.updateDottedRect(this.selectedRectangle);
+      this.drawCanvas();
+
+      return;
     } else if (this.isDrawing) {
       this.currentRectangle.width = e.offsetX - this.currentRectangle.x;
       this.currentRectangle.height = e.offsetY - this.currentRectangle.y;
@@ -207,7 +213,7 @@ class App {
       this.startPointerPosition = { x: e.offsetX, y: e.offsetY };
       this.showDeleteButton(this.selectedRectangle);
       this.updateDottedRect(this.selectedRectangle);
-    } else if (this.pointers.size === 3) return;
+    }
 
     this.drawCanvas();
   }
