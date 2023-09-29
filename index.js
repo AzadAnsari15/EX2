@@ -1,20 +1,42 @@
 class Rectangle {
+  /**
+   * Constructor initializes the position and dimensions of the rectangle.
+   */
   constructor(x, y, width = 0, height = 0) {
+    /**
+     * X-coordinate of the top-left corner
+     */
     this.x = x;
+    /**
+     * Y-coordinate of the top-left corner
+     */
     this.y = y;
+    /**
+     * Width of the rectangle
+     */
     this.width = width;
+    /**
+     * Height of the rectangle
+     */
     this.height = height;
   }
 
+  /**
+   *
+   * Draw the rectangle on the canvas context content provided(ctx)
+   */
   draw(ctx) {
+    /** Set the rectangle color and draw it */
     ctx.fillStyle = "#FF5733";
     ctx.fillRect(this.x, this.y, this.width, this.height);
-
+    /** Draw a small blue square at the bottom-right corner of the rectangle. */
     ctx.fillStyle = "blue";
     ctx.fillRect(this.x + this.width - 5, this.y + this.height - 5, 10, 10);
   }
 
-  // Check if a point (x, y) is inside the rectangle
+  /**
+   * Checks if a given point (x, y) lies within the rectangle boundaries
+   */
   contains(x, y) {
     return (
       x > this.x &&
@@ -24,7 +46,9 @@ class Rectangle {
     );
   }
 
-  // Check if a point (x, y) is inside the resize indicator of the rectangle(for desktop)
+  /**
+   * Checks if a point (x, y) lies within the resize indicator (blue square) of the rectangle.
+   */
   insideResizeIndicator(x, y) {
     const size = 50;
     return (
@@ -34,20 +58,23 @@ class Rectangle {
       y < this.y + this.height + size
     );
   }
-  // Resize the rectangle by a given scale factor
+  /**
+   * Adjusts the rectangle's dimensions based on the scale factor provided.
+   * The rectangle's position is also adjusted to maintain its center.
+   */
   resize(scaleFactor) {
     const deltaWidth = this.width * (scaleFactor - 1);
     const deltaHeight = this.height * (scaleFactor - 1);
 
-    this.width *= scaleFactor;
-    this.height *= scaleFactor;
-    // Adjust the position to maintain the center of the rectangle
-    this.x -= deltaWidth / 2;
-    this.y -= deltaHeight / 2;
+    this.width *= scaleFactor; /** Adjust width */
+    this.height *= scaleFactor; /** Adjust height */
+    this.x -= deltaWidth / 2; /** Adjust x-coordinate to keep center constant */
+    this.y -=
+      deltaHeight / 2; /** Adjust y-coordinate to keep center constant */
   }
 
   /**
-   * This method ensure that rectangle stay within canvas boundaries
+   * Moves the rectangle based on given deltas (dx, dy), ensuring it stays within canvas boundaries.
    */
   move(dx, dy, maxWidth, maxHeight) {
     this.x = Math.min(Math.max(0, this.x + dx), maxWidth - this.width);
@@ -59,7 +86,7 @@ class Rectangle {
  */
 class App {
   /**
-   * Initializes a new App instance.
+   * Constructor initializes the App with required DOM elements and event listeners.
    */
   constructor() {
     /** @type {HTMLCanvasElement} */
@@ -237,7 +264,9 @@ class App {
 
     this.drawCanvas();
   }
-
+  /**
+   * Handle user lifting their pointer (or finger) from the canvas.
+   */
   onPointerUp(e) {
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
@@ -249,6 +278,9 @@ class App {
       this.isResizing = false;
     }
   }
+  /**
+   * Handle a pointer (or finger) getting unexpectedly cancelled.
+   */
   onPointerCancel(e) {
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) {
@@ -302,10 +334,12 @@ class App {
     this.deleteButton.style.left = rect.x + rect.width + "px";
     this.deleteButton.style.top = rect.y - 20 + "px";
   }
-
+  /**
+   * Handle a pointer (or finger) getting unexpectedly cancelled.
+   */
   hideDeleteButton() {
     this.deleteButton.style.display = "none";
   }
 }
-
+/** Instantiate the main application. */
 new App();
